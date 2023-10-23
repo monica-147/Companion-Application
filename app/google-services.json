@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "704863519974",
+    "project_id": "latlon-3fc5c",
+    "storage_bucket": "latlon-3fc5c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704863519974:android:ddeeb5e175a7024a832727",
+        "android_client_info": {
+          "package_name": "com.example.powergridemergencynotifier"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "704863519974-hj449vksflul4s1c56qvl6anpgs35pu7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC4MHnRWrJ8xP8VVHY-5lJ3Qd-I8X-qa4g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "704863519974-hj449vksflul4s1c56qvl6anpgs35pu7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
