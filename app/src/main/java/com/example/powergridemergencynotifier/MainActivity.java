@@ -142,9 +142,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 hashMap.put("email", userEmail);
                                 hashMap.put("zipcode", userZipcode);
 
-                                String UIN = userEmail.replace(".", "");
-                                UIN.replace("#", "");
-                                UIN.replace("$", "");
+                                String UIN = userEmail.replaceAll(".", "");
+                                UIN.replaceAll("#", "");
+                                UIN.replaceAll("$", "");
 
                                 //check if user already has zipcode stored
                                 DatabaseReference userNameRef = reference.child("User").child(UIN);

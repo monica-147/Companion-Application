@@ -74,6 +74,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
 
     String dateTime, messageContent, threat_level, city, UID;
     HashMap<String, Object> hashMap = new HashMap<>();
+    List<String> UIDThreat = new ArrayList<String>();
 
     private void setNavigationViewListener() {
         navigationView = (NavigationView) findViewById(R.id.nav_view);
@@ -108,76 +109,6 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
 
         // to make the Navigation drawer icon always appear on the action bar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        /*ArrayList<ArrayList> dataList = new ArrayList<ArrayList>();
-        ArrayList<String> innerList1 = new ArrayList<String>();
-        ArrayList<String> innerList2 = new ArrayList<String>();
-        ArrayList<String> innerList3 = new ArrayList<String>();
-        innerList1.add("09/22/23, 12:01:94");
-        innerList1.add("Immediate");
-        innerList1.add("Tornado near car");
-        innerList1.add("North Zulch, TX");
-        innerList2.add("10/20/23, 11:08:94");
-        innerList2.add("Moderate");
-        innerList2.add("power out");
-        innerList2.add("Iola, TX");
-        innerList3.add("10/21/23, 11:08:94");
-        innerList3.add("Moderate");
-        innerList3.add("fire near road");
-        innerList3.add("Hilltop Lakes, TX");
-        dataList.add(innerList1);
-        dataList.add(innerList2);
-        dataList.add(innerList3);
-
-        for(int x=0; x<=(dataList.size())-1; x++){
-            //loopNum = loopVal+1;
-            ArrayList<String> test = dataList.get(x);
-            String lower = test.get(2).toLowerCase();
-            if (lower.contains("ablaze") || lower.contains("fire") || lower.contains("burned")
-            || lower.contains("burning") || lower.contains("flare")){
-                test.add("Fire");
-            } else if (lower.contains("power") || lower.contains("outage") || lower.contains("transformer")){
-                test.add("Power");
-            } else if (lower.contains("flood") || lower.contains("hurricane") || lower.contains("tsunami")
-                    || lower.contains("cyclone")){
-                test.add("Flood");
-            } else if (lower.contains("blizzard") || lower.contains("ice")){
-                test.add("Ice");
-            } else if (lower.contains("storm") || lower.contains("lightning") || lower.contains("wind")){
-                test.add("Storm");
-            } else if (lower.contains("debris") || lower.contains("collapse") || lower.contains("danger")
-                    || lower.contains("shelter")){
-                test.add("Danger");
-            } else if (lower.contains("tornado")){
-                test.add("Tornado");
-            } else if (lower.contains("earthquake")){
-                test.add("Earthquake");
-            }
-            String UID = test.get(0).substring(0,5).replace("/"," ")+" "+test.get(3)+" "+test.get(4);
-            ValueEventListener eventListener = new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    //if (!dataSnapshot.exists()){ //check if UID is in database already
-                    //UID is new
-                    String timeMess = test.get(0).substring(10, 15) + test.get(2);
-                    //messageList.add(timeMess);
-                    HashMap<String, Object> hashMap = new HashMap<>();
-                    hashMap.put("Date", test.get(0).substring(0, 5));
-                    if (test.get(1).equals("Immediate")) {
-                        hashMap.put("Category", "Immediate");
-                    }
-                    hashMap.put("Category", test.get(1));
-                    hashMap.put("Type", test.get(4));
-                    hashMap.put("City", test.get(3));
-                    hashMap.put(timeMess, timeMess);
-                    alertRef.child(UID).updateChildren(hashMap);
-                }@Override
-                public void onCancelled(@NonNull DatabaseError error) {
-                    Toast.makeText(Options.this,"cancelled",Toast.LENGTH_LONG).show();
-                }
-            };
-            alertRef.child(UID).addListenerForSingleValueEvent(eventListener);
-        }*/
 
         PopulateTable();
         //refresh(1000);
@@ -256,7 +187,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
         URI uri;
         try {
             // Connect to local host
-            uri = new URI("ws://10.228.34.211:12345/websocket");
+            uri = new URI("ws://10.229.140.171:12345/websocket");
         }
         catch (URISyntaxException e) {
             e.printStackTrace();
@@ -303,7 +234,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                                 } else if (lower.contains("flood") || lower.contains("hurricane") || lower.contains("tsunami")
                                         || lower.contains("cyclone")){
                                     messageType = "Flood";
-                                } else if (lower.contains("blizzard") || lower.contains("ice")){
+                                } else if (lower.contains("blizzard") || lower.contains("ice") || lower.contains("icing")){
                                     messageType = "Ice";
                                 } else if (lower.contains("storm") || lower.contains("lightning") || lower.contains("wind")){
                                     messageType = "Storm";
@@ -315,7 +246,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                                 } else if (lower.contains("earthquake")){
                                     messageType = "Earthquake";
                                 }
-                                UID = info_list.getString(0).substring(0,5).replace("/"," ")+" "+info_list.getString(3)+" "+messageType;
+                                UID = info_list.getString(0).substring(0,5).replaceAll("/"," ")+" "+info_list.getString(3)+" "+messageType;
 
                                 //sent message and details to database
                                 dateTime = info_list.getString(0);
@@ -353,12 +284,16 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                                 //HashMap<String, Object> hashMap = new HashMap<>();
                                 hashMap.put("Date", dateTime.substring(0, 5));
                                 if (threat_level.equals("Immediate")) {
-                                    hashMap.put("Category", "Immediate");
+                                    UIDThreat.add(UID);
                                 }
-                                hashMap.put("Category", threat_level);
+                                if (UIDThreat.contains(UID)){
+                                    hashMap.put("Category", "Immediate");
+                                }else{
+                                    hashMap.put("Category", "Moderate");
+                                }
                                 hashMap.put("Type", messageType);
                                 hashMap.put("City", city);
-                                String timeLabel = timeMess.replace(".", "");
+                                String timeLabel = timeMess.replaceAll(".", "");
                                 hashMap.put(timeLabel, timeMess);
                                 Log.i("hash output",hashMap.toString());
                                 Log.i("UID", UID);
@@ -401,31 +336,8 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
         };
         /*webSocketClient.setConnectTimeout(10000);
         webSocketClient.setReadTimeout(60000);*/
-        webSocketClient.enableAutomaticReconnection(5000);
+        webSocketClient.enableAutomaticReconnection(3000);
         webSocketClient.connect();
-    }
-    private void UpdateDatabase(){
-        ValueEventListener eventListener = new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                //adding messages to database using their UID
-                String timeMess = dateTime.substring(10, 15) + messageContent;
-                HashMap<String, Object> hashMap = new HashMap<>();
-                hashMap.put("Date", dateTime.substring(0, 5));
-                if (threat_level.equals("Immediate")) {
-                    hashMap.put("Category", "Immediate");
-                }
-                hashMap.put("Category", threat_level);
-                hashMap.put("Type", messageType);
-                hashMap.put("City", city);
-                hashMap.put(timeMess, timeMess);
-                alertRef.child(UID).updateChildren(hashMap);
-            }@Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                //Toast.makeText(Options.this,"cancelled",Toast.LENGTH_LONG).show();
-            }
-        };
-        alertRef.child(UID).addListenerForSingleValueEvent(eventListener);
     }
     private void PopulateTable(){
         ValueEventListener eventListener = new ValueEventListener() {
@@ -496,7 +408,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
             }
         };
         alertRef.addListenerForSingleValueEvent(eventListener);
-        refresh(10000);
+        refresh(5000);
     }
     private void refresh (int milliseconds){
         final Handler handler = new Handler();

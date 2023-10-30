@@ -63,8 +63,8 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Google
     List<String> UIDList = new ArrayList<String>();
     List<String> categoryList = new ArrayList<String>();
     List<String> dateList = new ArrayList<String>();
-    static final float COORDINATE_OFFSET = 0.00002f;
-    HashMap<String, String> markerLocation;
+    static final float COORDINATE_OFFSET = 0.005f;
+    List<String> markerLocation = new ArrayList<String>();
     double newLat, newLong;
     private HashMap<Marker, Integer> markerIdMapping = new HashMap<>();
 
@@ -141,9 +141,27 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Google
                             //Log.i("websocketclient",cityCol);
                             for(Address a : addresses){
                                 if(a.hasLatitude() && a.hasLongitude()){
+                                    latVal = String.valueOf(a.getLatitude());
+                                    longVal = String.valueOf(a.getLongitude());
+                                    latLong = latVal + " " + longVal;
+                                    Log.i("test", String.valueOf(markerLocation));
+                                    while (markerLocation.contains(latLong)){
+                                        Log.i("while", "in while");
+                                        String [] tokens = latLong.split(" ");
+                                        newLat = Double.parseDouble(tokens[0])+COORDINATE_OFFSET;
+                                        newLong = Double.parseDouble(tokens[1])+COORDINATE_OFFSET;
+                                        latVal = String.valueOf(newLat);
+                                        longVal = String.valueOf(newLong);
+                                        latLong = latVal + " " + longVal;
+                                    }
+                                    markerLocation.add(latLong);
+                                    String[] token = latLong.split(" ");
+                                    double latitudeVal = Double.parseDouble(token[0]);
+                                    double longitudeVal = Double.parseDouble(token[1]);
+
                                     //store lat and long in array
-                                    latAndLon.add(a.getLatitude());
-                                    latAndLon.add(a.getLongitude());
+                                    latAndLon.add(latitudeVal);
+                                    latAndLon.add(longitudeVal);
                                     //store type of hazard in array
                                     typeList.add(typeCol);
                                     typeList.add(" ");
@@ -200,18 +218,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Google
                 //if not current date set lower opacity
                 alphaSet = 0.2f;
             }
-            /*latVal = latAndLon.get(j).toString();
-            longVal = latAndLon.get(j+1).toString();
-            Log.i("test", String.valueOf(markerLocation.containsValue(latVal)));
-            while (mapAlreadyHasMarkerForLocation(latVal)){
-                Log.i("while", "in while");
-                String [] tokens = latLong.split(" ");
-                newLat = Double.parseDouble(tokens[0])+COORDINATE_OFFSET;
-                newLong = Double.parseDouble(tokens[1])+COORDINATE_OFFSET;
-                latVal = String.valueOf(newLat);
-                longVal = String.valueOf(newLong);
-            }
-            markerLocation.put(latVal, longVal);*/
+            Log.i("latandLong", String.valueOf(latAndLon));
             //adding marker
             Marker marker = mMap.addMarker(new MarkerOptions()
                     //get lat and long stored in array
