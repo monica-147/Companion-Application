@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private WebSocketClient client;
     String userEmail;
     String userZipcode;
-    String status;
+    String status, UIN;
 
 
     @Override
@@ -142,9 +142,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 hashMap.put("email", userEmail);
                                 hashMap.put("zipcode", userZipcode);
 
-                                String UIN = userEmail.replaceAll(".", "");
-                                UIN.replaceAll("#", "");
-                                UIN.replaceAll("$", "");
+                                UIN = userEmail.replace(".", "");
+                                UIN = UIN.replace("#", "");
+                                UIN = UIN.replace("$", "");
+                                UIN = UIN.replace("/","");
+                                UIN = UIN.replace("[","");
+                                UIN = UIN.replace("]","");
+
 
                                 //check if user already has zipcode stored
                                 DatabaseReference userNameRef = reference.child("User").child(UIN);

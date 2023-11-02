@@ -69,7 +69,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
     DatabaseReference firebaseDatabase, alertRef;
     TableLayout tl;
     TableRow tr_head;
-    String dateCol, typeCol, categoryCol, cityCol, messageType;
+    String dateCol, typeCol, categoryCol, cityCol, messageType, threatVal;
     JSONArray info_list, infoArray;
 
     String dateTime, messageContent, threat_level, city, UID;
@@ -152,6 +152,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                 editor.putString("zipcode", "");
                 editor.apply();
                 alertRef.removeValue();
+                tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
                 //open main activity page
                 Intent intent1 = new Intent(this, MainActivity.class);
                 startActivity(intent1);
@@ -174,6 +175,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                 editor.putString("zipcode", "");
                 editor.apply();
                 alertRef.removeValue();
+                tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
                 //open login page
                 Intent intent4 = new Intent(this, Login.class);
                 startActivity(intent4);
@@ -187,7 +189,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
         URI uri;
         try {
             // Connect to local host
-            uri = new URI("ws://10.229.140.171:12345/websocket");
+            uri = new URI("ws://10.254.202.63:12345/websocket");
         }
         catch (URISyntaxException e) {
             e.printStackTrace();
@@ -246,7 +248,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                                 } else if (lower.contains("earthquake")){
                                     messageType = "Earthquake";
                                 }
-                                UID = info_list.getString(0).substring(0,5).replaceAll("/"," ")+" "+info_list.getString(3)+" "+messageType;
+                                UID = info_list.getString(0).substring(0,5).replace("/"," ")+" "+info_list.getString(3)+" "+messageType;
 
                                 //sent message and details to database
                                 dateTime = info_list.getString(0);
@@ -283,17 +285,24 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                                 String timeMess = dateTime.substring(12, 17) + messageContent;
                                 //HashMap<String, Object> hashMap = new HashMap<>();
                                 hashMap.put("Date", dateTime.substring(0, 5));
+                                //threatVal = "Immediate";
                                 if (threat_level.equals("Immediate")) {
                                     UIDThreat.add(UID);
                                 }
                                 if (UIDThreat.contains(UID)){
-                                    hashMap.put("Category", "Immediate");
+                                    threatVal = "Immediate";
                                 }else{
-                                    hashMap.put("Category", "Moderate");
+                                    threatVal = "Moderate";
                                 }
+                                hashMap.put("Category", threatVal);
                                 hashMap.put("Type", messageType);
                                 hashMap.put("City", city);
-                                String timeLabel = timeMess.replaceAll(".", "");
+                                String timeLabel = timeMess.replace(".", "");
+                                timeLabel = timeLabel.replace("/","");
+                                timeLabel = timeLabel.replace("$","");
+                                timeLabel = timeLabel.replace("#","");
+                                timeLabel = timeLabel.replace("[","");
+                                timeLabel = timeLabel.replace("]","");
                                 hashMap.put(timeLabel, timeMess);
                                 Log.i("hash output",hashMap.toString());
                                 Log.i("UID", UID);
@@ -309,6 +318,9 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                 } catch (Exception e){
                     e.printStackTrace();
                 }
+                //refresh(3000);
+
+                webSocketClient.send(user+":"+zipcode+":get history");
             }
 
 

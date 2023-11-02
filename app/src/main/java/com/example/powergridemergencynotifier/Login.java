@@ -36,7 +36,7 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
     TextView textView2;
     FirebaseDatabase firebaseDatabase;
     DatabaseReference reference;
-    String retZip;
+    String retZip, UIN;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getSupportActionBar().hide();
@@ -88,8 +88,6 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
                                     public void onComplete(@NonNull Task<AuthResult> task) {
                                         if (task.isSuccessful()) {
                                             // Sign in success, update UI with the signed-in user's information
-                                            Toast.makeText(Login.this, "Login successful",
-                                                    Toast.LENGTH_SHORT).show();
                                             //store email and password for future use
                                             SharedPreferences login = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                                             SharedPreferences.Editor editor = login.edit();
@@ -97,9 +95,9 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
                                             editor.putString("password", password);
                                             editor.apply();
 
-                                            String UIN = email.replace(".", "");
-                                            UIN.replace("#", "");
-                                            UIN.replace("$", "");
+                                            UIN = email.replace(".", "");
+                                            UIN = UIN.replace("#", "");
+                                            UIN = UIN.replace("$", "");
 
                                             //check if user has zipcode stored to database
                                             DatabaseReference userNameRef = reference.child("User").child(UIN);
@@ -146,8 +144,6 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
                                                 @Override
                                                 public void onCancelled(DatabaseError databaseError) {
                                                     //error
-                                                    Toast.makeText(Login.this, "error",
-                                                            Toast.LENGTH_SHORT).show();
                                                 }
                                             };
                                             userNameRef.addListenerForSingleValueEvent(eventListener);

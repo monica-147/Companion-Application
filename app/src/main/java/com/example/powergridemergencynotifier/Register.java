@@ -71,7 +71,6 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
                         String emailPattern = "[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-z]+\\.+[a-z]+";
                         // onClick of button perform this simplest code.
                         if (email.matches(emailPattern)) {
-                            Toast.makeText(getApplicationContext(),"valid email address",Toast.LENGTH_SHORT).show();
                             if (password.equals(conf_password)) {
                                 mAuth.createUserWithEmailAndPassword(email, password)
                                         .addOnCompleteListener( new OnCompleteListener<AuthResult>() {
