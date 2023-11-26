@@ -2,6 +2,8 @@ package com.example.powergridemergencynotifier;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -28,6 +30,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 public class Login extends AppCompatActivity implements View.OnClickListener{
 
@@ -36,7 +39,7 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
     TextView textView2;
     FirebaseDatabase firebaseDatabase;
     DatabaseReference reference;
-    String retZip, UIN;
+    String retZip, UIN, string_lat, string_lon;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getSupportActionBar().hide();
@@ -91,13 +94,17 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
                                             //store email and password for future use
                                             SharedPreferences login = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                                             SharedPreferences.Editor editor = login.edit();
-                                            editor.putString("email", email);
+                                            editor.putString("email", email.toLowerCase());
                                             editor.putString("password", password);
                                             editor.apply();
 
-                                            UIN = email.replace(".", "");
-                                            UIN = UIN.replace("#", "");
-                                            UIN = UIN.replace("$", "");
+                                            UIN = email.replace(".", ",");
+                                            UIN = UIN.replace("#", "(");
+                                            UIN = UIN.replace("$", ")");
+                                            UIN = UIN.replace("/","-");
+                                            UIN = UIN.replace("[","+");
+                                            UIN = UIN.replace("]","*");
+                                            UIN = UIN.toLowerCase();
 
                                             //check if user has zipcode stored to database
                                             DatabaseReference userNameRef = reference.child("User").child(UIN);
@@ -120,10 +127,31 @@ public class Login extends AppCompatActivity implements View.OnClickListener{
 
                                                                     Toast.makeText(Login.this, retZip,
                                                                             Toast.LENGTH_SHORT).show();
+
+                                                                    final Geocoder geocoder = new Geocoder(getApplicationContext());
+                                                                    try {
+                                                                        //Toast.makeText(MainActivity.this,zipcode,Toast.LENGTH_LONG).show();
+                                                                        List<Address> addresses = geocoder.getFromLocationName(retZip, 5);
+                                                                        //Toast.makeText(MainActivity.this,addresses.toString(),Toast.LENGTH_LONG).show();
+                                                                        if (addresses != null && !addresses.isEmpty()) {
+                                                                            Address address = addresses.get(0);
+                                                                            // Use the address as needed
+                                                                            double main_lat = address.getLatitude(); //conv to lat
+                                                                            double main_lon = address.getLongitude(); //conv to long
+
+                                                                            //convert double to string
+                                                                            string_lat = String.valueOf(main_lat);
+                                                                            string_lon = String.valueOf(main_lon);
+                                                                        }
+                                                                    }catch (IOException e) {
+                                                                        throw new RuntimeException(e);
+                                                                    }
                                                                     //store in shared preferences
                                                                     SharedPreferences login = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                                                                     SharedPreferences.Editor editor = login.edit();
                                                                     editor.putString("zipcode", retZip);
+                                                                    editor.putString("lat", string_lat);
+                                                                    editor.putString("lon", string_lon);
                                                                     editor.apply();
 
                                                                     //open new page

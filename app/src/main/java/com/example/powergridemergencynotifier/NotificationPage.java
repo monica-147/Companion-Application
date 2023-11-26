@@ -22,6 +22,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -46,21 +47,39 @@ public class NotificationPage extends AppCompatActivity {
 
         //show action bar for back button visibility
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (isNetworkOnline2()) { //check network is online
 
-        SharedPreferences notif_page = PreferenceManager.getDefaultSharedPreferences(this);
-        //retrieve stored data to display on page
-        String UID = notif_page.getString("UID", "");
-        //use UID to get tweets
-        firebaseDatabase = FirebaseDatabase.getInstance().getReference();
-        alertRef = firebaseDatabase.child("Alerts").child(UID);
-        //Toast.makeText(NotificationPage.this, UID, Toast.LENGTH_LONG).show();
-        //making var for text views on page
-        tv1 = findViewById(R.id.textView1);
-        tv2 = findViewById(R.id.textView2);
-        tv3 = findViewById(R.id.textView3);
+            SharedPreferences notif_page = PreferenceManager.getDefaultSharedPreferences(this);
+            //retrieve stored data to display on page
+            String UID = notif_page.getString("UID", "");
+            //use UID to get tweets
+            firebaseDatabase = FirebaseDatabase.getInstance().getReference();
+            alertRef = firebaseDatabase.child("Alerts").child(UID);
+            //Toast.makeText(NotificationPage.this, UID, Toast.LENGTH_LONG).show();
+            //making var for text views on page
+            tv1 = findViewById(R.id.textView1);
+            tv2 = findViewById(R.id.textView2);
+            tv3 = findViewById(R.id.textView3);
 
 
-        PopulateTable();
+            PopulateTable();
+        }
+    }
+    public static boolean isNetworkOnline2() {
+        boolean isOnline = false;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process p = runtime.exec("ping -c 1 8.8.8.8");
+            int waitFor = p.waitFor();
+            isOnline = waitFor == 0;    // only when the waitFor value is zero, the network is online indeed
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return isOnline;
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

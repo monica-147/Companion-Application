@@ -68,37 +68,40 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
                     if (email != null && !email.isEmpty() && password != null && !password.isEmpty() && conf_password != null && !conf_password.isEmpty()) {
                         // Use the email and password as needed
 
-                        String emailPattern = "[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-z]+\\.+[a-z]+";
+                        String emailPattern = "[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z]+\\.+[a-zA-Z]+";
                         // onClick of button perform this simplest code.
                         if (email.matches(emailPattern)) {
                             if (password.equals(conf_password)) {
-                                mAuth.createUserWithEmailAndPassword(email, password)
-                                        .addOnCompleteListener( new OnCompleteListener<AuthResult>() {
-                                            @Override
-                                            public void onComplete(@NonNull Task<AuthResult> task) {
-                                                if (task.isSuccessful()) {
-                                                    // Sign in success, update UI with the signed-in user's information
-                                                    Toast.makeText(Register.this, "Account Created",
-                                                            Toast.LENGTH_SHORT).show();
-                                                    //store email and password for future use
-                                                    SharedPreferences login = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-                                                    SharedPreferences.Editor editor = login.edit();
-                                                    editor.putString("email", email);
-                                                    editor.putString("password", password);
-                                                    editor.apply();
+                                if (password.length() > 6) {
+                                    mAuth.createUserWithEmailAndPassword(email, password)
+                                            .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<AuthResult> task) {
+                                                    if (task.isSuccessful()) {
+                                                        // Sign in success, update UI with the signed-in user's information
+                                                        Toast.makeText(Register.this, "Account Created",
+                                                                Toast.LENGTH_SHORT).show();
+                                                        //store email and password for future use
+                                                        SharedPreferences login = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                                                        SharedPreferences.Editor editor = login.edit();
+                                                        editor.putString("email", email.toLowerCase());
+                                                        editor.putString("password", password);
+                                                        editor.apply();
 
-                                                    //open next page
-                                                    Intent intent1 = new Intent(getApplicationContext(), MainActivity.class);
-                                                    startActivity(intent1);
-                                                    finish();
-                                                } else {
-                                                    // If sign in fails, display a message to the user.
-                                                    Toast.makeText(Register.this, "Authentication failed.",
-                                                            Toast.LENGTH_SHORT).show();
+                                                        //open next page
+                                                        Intent intent1 = new Intent(getApplicationContext(), MainActivity.class);
+                                                        startActivity(intent1);
+                                                        finish();
+                                                    } else {
+                                                        // If sign in fails, display a message to the user.
+                                                        Toast.makeText(Register.this, "Authentication failed.",
+                                                                Toast.LENGTH_SHORT).show();
+                                                    }
                                                 }
-                                            }
-                                        });
-
+                                            });
+                                }else{
+                                    Toast.makeText(getApplicationContext(),"Password Must Be At Least 6 Characters",Toast.LENGTH_SHORT).show();
+                                }
                             } else {
                                 Toast.makeText(getApplicationContext(),"Passwords Do Not Match",Toast.LENGTH_SHORT).show();
                             }

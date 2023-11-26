@@ -10,13 +10,22 @@ import android.location.Geocoder;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -46,22 +55,24 @@ import tech.gusavila92.websocketclient.WebSocketClient;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     boolean isAvailable;
-    FirebaseDatabase firebaseDatabase;
-    DatabaseReference reference;
     private WebSocketClient client;
-    String userEmail;
+    FirebaseDatabase Firebasedatabase;
+    DatabaseReference reference;
+    DatabaseReference firebaseDatabase, alertRef;
+    String userEmail, retZip;
     String userZipcode;
-    String status, UIN;
+    String status, UIN, backZip;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        getSupportActionBar().hide();
         super.onCreate(savedInstanceState); //tells to run all the code
         setContentView(R.layout.activity_main); //xml file connected to class
 
-        firebaseDatabase = FirebaseDatabase.getInstance();
-        reference = firebaseDatabase.getReference();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        Firebasedatabase = FirebaseDatabase.getInstance();
+        reference = Firebasedatabase.getReference();
 
         Button button1 = findViewById(R.id.button2);
         button1.setOnClickListener(this);  //listener for submit button
@@ -83,6 +94,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Intent intent0 = new Intent(this, Login.class);
             startActivity(intent0);
         }
+        String emailUIN = check.replace(".",",");
+        emailUIN = emailUIN.replace("#","(");
+        emailUIN = emailUIN.replace("$",")");
+        emailUIN = emailUIN.replace("/","-");
+        emailUIN = emailUIN.replace("[","+");
+        emailUIN = emailUIN.replace("]","*");
+        emailUIN = emailUIN.toLowerCase();
+        firebaseDatabase = FirebaseDatabase.getInstance().getReference();
+        alertRef = firebaseDatabase.child(emailUIN);
     }
     public static boolean isNetworkOnline2() {
         boolean isOnline = false;
@@ -99,6 +119,53 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         return isOnline;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            //back button
+            case android.R.id.home:
+                BackButton();
+                if (backZip.equals("yes")) {
+                    Intent intent1 = new Intent(this, Options.class);
+                    startActivity(intent1);
+                    break;
+            }
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return true;
+    }
+
+    public void BackButton(){
+                    //store in shared preferences
+                        if (isNetworkOnline2()) { //check network is online
+                            // Execution here
+                            SharedPreferences credentials = PreferenceManager.getDefaultSharedPreferences(this);
+                            //retrieving stored user values
+                            String oldZip = credentials.getString("oldzipcode", "");
+                            String oldLat = credentials.getString("oldlat", "");
+                            String oldLong = credentials.getString("oldlon", "");
+
+                            if (oldLong.equals("") || oldLat.equals("") || oldZip.equals("")){
+                                backZip = "no";
+                                Toast.makeText(MainActivity.this, "Please enter ZipCode", Toast.LENGTH_LONG).show();
+                            }else {
+                                backZip = "yes";
+
+                                SharedPreferences coordinates = PreferenceManager.getDefaultSharedPreferences(this);
+                                SharedPreferences.Editor editor = coordinates.edit();
+                                //clear lat and long for new input
+                                editor.putString("lat", oldLat);
+                                editor.putString("lon", oldLong);
+                                editor.putString("zipcode", oldZip);
+                                editor.putString("oldlat", "");
+                                editor.putString("oldlon", "");
+                                editor.putString("oldzipcode", "");
+                                editor.apply();
+                            }
+                        }
     }
 
     @Override
@@ -139,16 +206,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 userZipcode = login.getString("zipcode",""); //retrieve zipcode
 
                                 HashMap<String, Object> hashMap = new HashMap<>();
-                                hashMap.put("email", userEmail);
+                                hashMap.put("email", userEmail.toLowerCase());
                                 hashMap.put("zipcode", userZipcode);
 
-                                UIN = userEmail.replace(".", "");
-                                UIN = UIN.replace("#", "");
-                                UIN = UIN.replace("$", "");
-                                UIN = UIN.replace("/","");
-                                UIN = UIN.replace("[","");
-                                UIN = UIN.replace("]","");
-
+                                UIN = userEmail.replace(".", ",");
+                                UIN = UIN.replace("#", "(");
+                                UIN = UIN.replace("$", ")");
+                                UIN = UIN.replace("/","-");
+                                UIN = UIN.replace("[","+");
+                                UIN = UIN.replace("]","*");
+                                UIN = UIN.toLowerCase();
 
                                 //check if user already has zipcode stored
                                 DatabaseReference userNameRef = reference.child("User").child(UIN);
@@ -222,69 +289,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
-    //not using anymore
-    private void createWebSocketClient() {
-        URI uri;
-        try {
-            // Connect to local host
-            uri = new URI("ws://10.229.167.183:12345/websocket");
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return;
-        }
-        client = new WebSocketClient(uri) {
-            @Override
-            public void onOpen() {
-                //send email to server
-                Log.i("WebSocket","Session is starting");
-                Log.i("WebSocket",status);
-                //client.send(userEmail + ":" + userZipcode);
-                if (status.equals("new user")) {
-                    //client.send("Add User:" + userEmail + ":" + userZipcode);
 
-
-                } else if (status.equals("exist user")) {
-                    //client.send("Update Zipcode:" + userEmail + ":" + userZipcode);
-
-
-                }
-            }
-
-            @Override
-            public void onTextReceived(String message) {
-                Log.i("websocketclient",message);
-
-            }
-
-            @Override
-            public void onBinaryReceived(byte[] data) {
-
-            }
-
-            @Override
-            public void onPingReceived(byte[] data) {
-
-            }
-
-            @Override
-            public void onPongReceived(byte[] data) {
-
-            }
-
-            @Override
-            public void onException(Exception e) {
-                System.out.println(e.getMessage());
-            }
-
-            @Override
-            public void onCloseReceived() {
-
-            }
-        };
-        /*client.setConnectTimeout(10000);
-        client.setReadTimeout(60000);
-        client.enableAutomaticReconnection(5000);*/
-        client.connect();
-    }
 
 }

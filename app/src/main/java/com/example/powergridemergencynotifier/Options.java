@@ -38,8 +38,10 @@ import java.lang.reflect.Array;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -72,9 +74,11 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
     String dateCol, typeCol, categoryCol, cityCol, messageType, threatVal;
     JSONArray info_list, infoArray;
 
-    String dateTime, messageContent, threat_level, city, UID;
+    String dateTime, messageContent, threat_level, city, UID, currentDate, user, zipcode;
     HashMap<String, Object> hashMap = new HashMap<>();
     List<String> UIDThreat = new ArrayList<String>();
+
+    List<String> UIDremaining = new ArrayList<String>();
 
     private void setNavigationViewListener() {
         navigationView = (NavigationView) findViewById(R.id.nav_view);
@@ -86,34 +90,53 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
         setContentView(R.layout.options);
         setNavigationViewListener();  //listener for nav menu
 
+        currentDate = new SimpleDateFormat("MM/dd", Locale.getDefault()).format(new Date());
+
         Button button1 = findViewById(R.id.button2);
         button1.setOnClickListener(this);  //listener for mapview button
 
         tl = (TableLayout) findViewById(R.id.tableLayout);
         tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
 
-        firebaseDatabase = FirebaseDatabase.getInstance().getReference();
-        alertRef = firebaseDatabase.child("Alerts");
+        if (isNetworkOnline2()) { //check network is online
 
-        createWebSocketClient();
+            firebaseDatabase = FirebaseDatabase.getInstance().getReference();
+            alertRef = firebaseDatabase.child("Alerts");
 
-        // drawer layout instance to toggle the menu icon to open
-        // drawer and back button to close drawer
-        drawerLayout = findViewById(R.id.my_drawer_layout);
-        actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
+            createWebSocketClient();
 
-        // pass the Open and Close toggle for the drawer layout listener
-        // to toggle the button
-        drawerLayout.addDrawerListener(actionBarDrawerToggle);
-        actionBarDrawerToggle.syncState();
+            // drawer layout instance to toggle the menu icon to open
+            // drawer and back button to close drawer
+            drawerLayout = findViewById(R.id.my_drawer_layout);
+            actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.nav_open, R.string.nav_close);
 
-        // to make the Navigation drawer icon always appear on the action bar
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            // pass the Open and Close toggle for the drawer layout listener
+            // to toggle the button
+            drawerLayout.addDrawerListener(actionBarDrawerToggle);
+            actionBarDrawerToggle.syncState();
 
-        PopulateTable();
-        //refresh(1000);
+            // to make the Navigation drawer icon always appear on the action bar
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+            PopulateTable();
+        }
     }
+    public static boolean isNetworkOnline2() {
+        boolean isOnline = false;
+        try {
+            Runtime runtime = Runtime.getRuntime();
+            Process p = runtime.exec("ping -c 1 8.8.8.8");
+            int waitFor = p.waitFor();
+            isOnline = waitFor == 0;    // only when the waitFor value is zero, the network is online indeed
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return isOnline;
+    }
 
     // override the onOptionsItemSelected()
     // function to implement
@@ -144,12 +167,22 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
         switch (item.getItemId()) {
 
             case R.id.newzip: {
+                SharedPreferences credentials = PreferenceManager.getDefaultSharedPreferences(this);
+                //retrieving stored user values
+                String oldZip = credentials.getString("zipcode", "");
+                String oldLat = credentials.getString("lat", "");
+                String oldLong = credentials.getString("lon", "");
+
                 SharedPreferences coordinates = PreferenceManager.getDefaultSharedPreferences(this);
                 SharedPreferences.Editor editor = coordinates.edit();
                 //clear lat and long for new input
                 editor.putString("lat", "");
                 editor.putString("lon", "");
                 editor.putString("zipcode", "");
+                editor.putString("oldlat", oldLat);
+                editor.putString("oldlon", oldLong);
+                editor.putString("oldzipcode", oldZip);
+                zipcode = "";
                 editor.apply();
                 alertRef.removeValue();
                 tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
@@ -173,6 +206,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                 editor.putString("lat", "");
                 editor.putString("lon", "");
                 editor.putString("zipcode", "");
+                zipcode = "";
                 editor.apply();
                 alertRef.removeValue();
                 tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
@@ -198,8 +232,8 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
 
         SharedPreferences credentials = PreferenceManager.getDefaultSharedPreferences(this);
         //retrieving stored user values
-        String user = credentials.getString("email", "");
-        String zipcode = credentials.getString("zipcode", "");
+        user = credentials.getString("email", "");
+        zipcode = credentials.getString("zipcode", "");
 
         webSocketClient = new WebSocketClient(uri) {
             @Override
@@ -320,7 +354,7 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
                 }
                 //refresh(3000);
 
-                webSocketClient.send(user+":"+zipcode+":get history");
+                //webSocketClient.send(user+":"+zipcode+":get history");
             }
 
 
@@ -357,61 +391,71 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot dsp : dataSnapshot.getChildren()){
                     String getUID = dsp.getKey().toString(); //gets UID
+                    if (!getUID.substring(0,5).replace(" ","/").equals(currentDate)){
+                        UIDremaining.add(getUID);
+                        //Log.i("UID", getUID.substring(0,5).replace(" ","/"));
+                        //Log.i("adding", String.valueOf(!getUID.substring(0,4).equals(currentDate)));
+                    }else {
+                        Log.i("UID", getUID.substring(0, 5).replace(" ", "/"));
+                        dateCol = dataSnapshot.child(getUID).child("Date").getValue(String.class); //gets date
+                        typeCol = dsp.child("Type").getValue(String.class); //gets type
+                        categoryCol = dsp.child("Category").getValue(String.class); //gets category
+                        cityCol = dsp.child("City").getValue(String.class); //gets city
 
-                    dateCol = dsp.child("Date").getValue(String.class); //gets date
-                    typeCol = dsp.child("Type").getValue(String.class); //gets type
-                    categoryCol = dsp.child("Category").getValue(String.class); //gets category
-                    cityCol = dsp.child("City").getValue(String.class); //gets city
+                        tr_head = new TableRow(getApplicationContext());
+                        tl.addView(tr_head, new TableLayout.LayoutParams());
 
-                    tr_head = new TableRow(getApplicationContext());
-                    tl.addView(tr_head, new TableLayout.LayoutParams());
+                        tr_head.setTag(getUID);
+                        tr_head.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                //communicate UID
+                                SharedPreferences notif_page = PreferenceManager.getDefaultSharedPreferences(Options.this);
+                                //store data to use on notif page
+                                SharedPreferences.Editor editor = notif_page.edit();
+                                editor.putString("UID", view.getTag().toString());
+                                editor.apply();
+                                //open notification page
+                                Intent intent3 = new Intent(Options.this, NotificationPage.class);
+                                startActivity(intent3);
+                            }
+                        });
+                        TextView labelDate = new TextView(Options.this);
+                        labelDate.setTextColor(Color.RED);
+                        labelDate.setText(dateCol); //set text for first col, date
+                        labelDate.setWidth(0);
+                        labelDate.setGravity(Gravity.CENTER);
+                        labelDate.setTextSize(14);
+                        labelDate.setPadding(18, 18, 18, 18);
+                        tr_head.addView(labelDate);// add the column to the table row here
 
-                    tr_head.setTag(getUID);
-                    tr_head.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            //communicate UID
-                            SharedPreferences notif_page = PreferenceManager.getDefaultSharedPreferences(Options.this);
-                            //store data to use on notif page
-                            SharedPreferences.Editor editor = notif_page.edit();
-                            editor.putString("UID", view.getTag().toString());
-                            editor.apply();
-                            //open notification page
-                            Intent intent3 = new Intent(Options.this, NotificationPage.class);
-                            startActivity(intent3);
-                        }
-                    });
-                    TextView labelDate = new TextView(Options.this);
-                    labelDate.setText(dateCol); //set text for first col, date
-                    labelDate.setWidth(0);
-                    labelDate.setGravity(Gravity.CENTER);
-                    labelDate.setTextSize(14);
-                    labelDate.setPadding(18, 18, 18, 18);
-                    tr_head.addView(labelDate);// add the column to the table row here
+                        TextView labelCategory = new TextView(Options.this);
+                        labelCategory.setTextColor(Color.RED);
+                        labelCategory.setText(categoryCol); // set the text for second col, category
+                        labelCategory.setGravity(Gravity.CENTER);
+                        labelCategory.setWidth(0);
+                        labelCategory.setTextSize(14);
+                        labelCategory.setPadding(5, 5, 5, 5);
+                        tr_head.addView(labelCategory); // add the column to the table row here
 
-                    TextView labelCategory = new TextView(Options.this);
-                    labelCategory.setText(categoryCol); // set the text for second col, category
-                    labelCategory.setGravity(Gravity.CENTER);
-                    labelCategory.setWidth(0);
-                    labelCategory.setTextSize(14);
-                    labelCategory.setPadding(5, 5, 5, 5);
-                    tr_head.addView(labelCategory); // add the column to the table row here
+                        TextView labelType = new TextView(Options.this);
+                        labelType.setTextColor(Color.RED);
+                        labelType.setText(typeCol); // set the text for third col, type
+                        labelType.setGravity(Gravity.CENTER);
+                        labelType.setWidth(0);
+                        labelType.setTextSize(14);
+                        labelType.setPadding(5, 5, 5, 5);
+                        tr_head.addView(labelType);// add the column to the table row here
 
-                    TextView labelType = new TextView(Options.this);
-                    labelType.setText(typeCol); // set the text for third col, type
-                    labelType.setGravity(Gravity.CENTER);
-                    labelType.setWidth(0);
-                    labelType.setTextSize(14);
-                    labelType.setPadding(5, 5, 5, 5);
-                    tr_head.addView(labelType);// add the column to the table row here
-
-                    TextView labelCity = new TextView(Options.this);
-                    labelCity.setText(cityCol); // set the text for fourth col, city
-                    labelCity.setGravity(Gravity.CENTER);
-                    labelCity.setWidth(0);
-                    labelCity.setTextSize(14);
-                    labelCity.setPadding(5, 5, 5, 5);
-                    tr_head.addView(labelCity); // add the column to the table row here
+                        TextView labelCity = new TextView(Options.this);
+                        labelCity.setTextColor(Color.RED);
+                        labelCity.setText(cityCol); // set the text for fourth col, city
+                        labelCity.setGravity(Gravity.CENTER);
+                        labelCity.setWidth(0);
+                        labelCity.setTextSize(14);
+                        labelCity.setPadding(5, 5, 5, 5);
+                        tr_head.addView(labelCity); // add the column to the table row here
+                    }
                 }
             }
             @Override
@@ -420,8 +464,78 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
             }
         };
         alertRef.addListenerForSingleValueEvent(eventListener);
+        //Log.i("UIDs", UIDremaining.toString());
         refresh(5000);
     }
+    private void PopulateAgain(){
+            ValueEventListener eventListener = new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                        for (int i = 0; i < UIDremaining.size(); i++) {
+                            dateCol = dataSnapshot.child(UIDremaining.get(i)).child("Date").getValue(String.class); //gets date
+                            typeCol = dataSnapshot.child(UIDremaining.get(i)).child("Type").getValue(String.class); //gets type
+                            categoryCol = dataSnapshot.child(UIDremaining.get(i)).child("Category").getValue(String.class); //gets category
+                            cityCol = dataSnapshot.child(UIDremaining.get(i)).child("City").getValue(String.class); //gets city
+
+                            tr_head = new TableRow(getApplicationContext());
+                            tl.addView(tr_head, new TableLayout.LayoutParams());
+
+                            tr_head.setTag(UIDremaining.get(i));
+                            tr_head.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    //communicate UID
+                                    SharedPreferences notif_page = PreferenceManager.getDefaultSharedPreferences(Options.this);
+                                    //store data to use on notif page
+                                    SharedPreferences.Editor editor = notif_page.edit();
+                                    editor.putString("UID", view.getTag().toString());
+                                    editor.apply();
+                                    //open notification page
+                                    Intent intent3 = new Intent(Options.this, NotificationPage.class);
+                                    startActivity(intent3);
+                                }
+                            });
+                            TextView labelDate = new TextView(Options.this);
+                            labelDate.setText(dateCol); //set text for first col, date
+                            labelDate.setWidth(0);
+                            labelDate.setGravity(Gravity.CENTER);
+                            labelDate.setTextSize(14);
+                            labelDate.setPadding(18, 18, 18, 18);
+                            tr_head.addView(labelDate);// add the column to the table row here
+
+                            TextView labelCategory = new TextView(Options.this);
+                            labelCategory.setText(categoryCol); // set the text for second col, category
+                            labelCategory.setGravity(Gravity.CENTER);
+                            labelCategory.setWidth(0);
+                            labelCategory.setTextSize(14);
+                            labelCategory.setPadding(5, 5, 5, 5);
+                            tr_head.addView(labelCategory); // add the column to the table row here
+
+                            TextView labelType = new TextView(Options.this);
+                            labelType.setText(typeCol); // set the text for third col, type
+                            labelType.setGravity(Gravity.CENTER);
+                            labelType.setWidth(0);
+                            labelType.setTextSize(14);
+                            labelType.setPadding(5, 5, 5, 5);
+                            tr_head.addView(labelType);// add the column to the table row here
+
+                            TextView labelCity = new TextView(Options.this);
+                            labelCity.setText(cityCol); // set the text for fourth col, city
+                            labelCity.setGravity(Gravity.CENTER);
+                            labelCity.setWidth(0);
+                            labelCity.setTextSize(14);
+                            labelCity.setPadding(5, 5, 5, 5);
+                            tr_head.addView(labelCity); // add the column to the table row here
+                        }
+                        }
+                        @Override
+                        public void onCancelled (@NonNull DatabaseError error){
+                            Toast.makeText(Options.this, "cancelled", Toast.LENGTH_LONG).show();
+                        }
+                    } ;
+                    alertRef.addListenerForSingleValueEvent(eventListener);
+                    UIDremaining.clear();
+                }
     private void refresh (int milliseconds){
         final Handler handler = new Handler();
 
@@ -430,6 +544,8 @@ public class Options extends AppCompatActivity implements NavigationView.OnNavig
             public void run() {
                 tl.removeViews(1,Math.max(0, tl.getChildCount() - 1));
                 PopulateTable();
+                PopulateAgain();
+                webSocketClient.send(user+":"+zipcode+":get history");
                 //createWebSocketClient();
             }
         };
